@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work Order Report</title>
+<style>
+  :root { --p: #6b3fa0; --line: #b9a6d3; --soft: #ede6f6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 13px/1.45 Arial, "Liberation Sans", sans-serif; color: #222; background: #f4f2f7; }
+  .bar { position: sticky; top: 0; display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #fff; border-bottom: 1px solid #ddd; z-index: 2; }
+  .bar button { border: 0; border-radius: 6px; padding: 7px 12px; font-weight: bold; cursor: pointer; }
+  .print { background: var(--p); color: #fff; }
+  .save { background: var(--soft); color: #4a2a75; }
+  .status { margin-left: auto; color: #777; font-size: 12px; }
+  .page { background: #fff; max-width: 780px; margin: 12px auto; padding: 26px 30px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .head img { width: 210px; max-width: 45%; }
+  .head .t { text-align: right; }
+  .head h1 { margin: 0; color: var(--p); font-size: 22px; }
+  .sub { color: #555; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+  .sec td { background: var(--p); color: #fff; font-weight: bold; }
+  .k { background: var(--soft); font-weight: bold; width: 30%; }
+  [contenteditable] { outline: none; min-height: 1.4em; white-space: pre-wrap; }
+  [contenteditable]:focus { background: #fffbe6; }
+  .tall { min-height: 60px; }
+  .sig td { text-align: center; }
+  .sig .blank { height: 90px; }
+  .hint { color: #888; font-size: 12px; text-align: center; margin: 4px 0 14px; }
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { background: #fff; }
+    .bar, .hint { display: none; }
+    .page { box-shadow: none; margin: 0; max-width: none; padding: 0; }
+    [contenteditable]:focus { background: none; }
+    td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <button class="print" onclick="window.print()">🖨 Print / PDF</button>
+  <button class="save" id="save" title="Write edited text fields back to the record">💾 Save to record</button>
+  <span class="status" id="status">Select a work order row…</span>
+</div>
+<p class="hint">Click any text to edit it before printing.</p>
+
+<div class="page">
+  <div class="head">
+    <img src="logo.png" alt="Fridge &amp; Freezer Maintenance">
+    <div class="t">
+      <h1>Work Order Report</h1>
+      <div class="sub">Beamed Trading W.L.L. · Fridge &amp; Freezer Maintenance</div>
+      <div class="sub">Work Order No.: <b contenteditable data-f="SN"></b> · Date: <b contenteditable data-f="Date 2"></b></div>
+    </div>
+  </div>
+
+  <table>
+    <tr class="sec"><td colspan="2">Customer &amp; Equipment</td></tr>
+    <tr><td class="k">Customer</td><td contenteditable data-f="Customer"></td></tr>
+    <tr><td class="k">Fridge/Freezer Model</td><td contenteditable data-f="Fridge/Freezer Model"></td></tr>
+    <tr><td class="k">Serial Number</td><td contenteditable data-f="Serial Number"></td></tr>
+    <tr><td class="k">Technician</td><td contenteditable data-f="Technician Name"></td></tr>
+  </table>
+
+  <table>
+    <tr class="sec"><td>Malfunction</td></tr>
+    <tr><td><div class="tall" contenteditable data-f="Malfunction"></div></td></tr>
+    <tr class="sec"><td>Work Carried Out</td></tr>
+    <tr><td><div class="tall" contenteditable data-f="Work Carried Out"></div></td></tr>
+  </table>
+
+  <table>
+    <tr class="sec"><td colspan="2">Spare Parts</td></tr>
+    <tr><td class="k">Spare parts replaced</td><td contenteditable data-f="Did you replace any Spare Parts?"></td></tr>
+    <tr><td class="k">Details</td><td contenteditable data-f="Replaced Spare Parts"></td></tr>
+  </table>
+
+  <table class="sig" style="margin-top:26px">
+    <tr><td class="k" style="width:50%">Technician Signature</td><td class="k">Customer Signature &amp; Stamp</td></tr>
+    <tr><td class="blank"></td><td class="blank"></td></tr>
+    <tr><td style="text-align:left">Name: <span data-copy="Technician Name"></span></td><td style="text-align:left" contenteditable>Name: </td></tr>
+  </table>
+</div>
+
+<script type="module">
+import { bitable, FieldType } from 'https://cdn.jsdelivr.net/npm/@lark-base-open/js-sdk@1.0.2/+esm';
+
+const statusEl = document.getElementById('status');
+const cells = [...document.querySelectorAll('[data-f]')];
+let table, recordId, fieldsByName = {}, original = {};
+
+const status = (msg) => { statusEl.textContent = msg; };
+
+async function load(sel) {
+  if (!sel || !sel.tableId || !sel.recordId) return status('Select a work order row…');
+  table = await bitable.base.getTableById(sel.tableId);
+  recordId = sel.recordId;
+  fieldsByName = Object.fromEntries((await table.getFieldMetaList()).map(m => [m.name, m]));
+  for (const el of cells) {
+    const meta = fieldsByName[el.dataset.f];
+    let v = meta ? await table.getCellString(meta.id, recordId) : '';
+    if (meta && meta.type === FieldType.DateTime && v) v = v.split(' ')[0];
+    el.textContent = v || '';
+    original[el.dataset.f] = el.textContent;
+  }
+  document.querySelectorAll('[data-copy]').forEach(el => {
+    el.textContent = document.querySelector(`[data-f="${el.dataset.copy}"]`).textContent;
+  });
+  status('Work order ' + (original['SN'] || '') + ' loaded');
+}
+
+// Only plain text fields are written back; dates, selects and the SN are print-only edits
+document.getElementById('save').onclick = async () => {
+  if (!table) return;
+  let n = 0;
+  for (const el of cells) {
+    const meta = fieldsByName[el.dataset.f];
+    const v = el.textContent.trim();
+    if (!meta || meta.type !== FieldType.Text || v === (original[el.dataset.f] || '').trim()) continue;
+    await table.setCellValue(meta.id, recordId, [{ type: 'text', text: v }]);
+    original[el.dataset.f] = v;
+    n++;
+  }
+  status(n ? `Saved ${n} field(s) to the record` : 'Nothing to save (only text fields are saved)');
+};
+
+try {
+  await load(await bitable.base.getSelection());
+  bitable.base.onSelectionChange(e => load(e.data).catch(err => status('Error: ' + err.message)));
+} catch (err) {
+  status('Open this inside Lark Base as an extension');
+}
+</script>
+</body>
+</html>
