@@ -85,8 +85,27 @@
   </table>
 </div>
 
+<script>
+// Link mode: the Base "Report" column passes the work order in the URL
+const params = new URLSearchParams(location.search);
+if (params.has('sn')) {
+  const keys = { sn: 'SN', d: 'Date 2', c: 'Customer', m: 'Fridge/Freezer Model', s: 'Serial Number', t: 'Technician Name',
+                 mal: 'Malfunction', w: 'Work Carried Out', yn: 'Did you replace any Spare Parts?', sp: 'Replaced Spare Parts' };
+  for (const [k, f] of Object.entries(keys)) {
+    const el = document.querySelector(`[data-f="${f}"]`);
+    if (el) el.textContent = (params.get(k) || '').trim();
+  }
+  document.querySelectorAll('[data-copy]').forEach(el => {
+    el.textContent = document.querySelector(`[data-f="${el.dataset.copy}"]`).textContent;
+  });
+  document.getElementById('save').style.display = 'none';
+  document.getElementById('status').textContent = 'Work order ' + params.get('sn');
+  document.title = 'Work Order ' + params.get('sn');
+}
+</script>
 <script type="module">
-import { bitable, FieldType } from 'https://cdn.jsdelivr.net/npm/@lark-base-open/js-sdk@1.0.2/+esm';
+if (new URLSearchParams(location.search).has('sn')) throw new Error('link mode');
+const { bitable, FieldType } = await import('https://cdn.jsdelivr.net/npm/@lark-base-open/js-sdk@1.0.2/+esm');
 
 const statusEl = document.getElementById('status');
 const cells = [...document.querySelectorAll('[data-f]')];
