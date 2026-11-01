@@ -30,10 +30,12 @@
   .sig .blank { height: 90px; }
   .hint { color: #888; font-size: 12px; text-align: center; margin: 4px 0 14px; }
   @media print {
-    @page { size: A4; margin: 12mm; }
-    body { background: #fff; }
+    @page { size: A4; margin: 18mm 14mm 12mm 14mm; }
+    html, body { width: auto; background: #fff; }
     .bar, .hint { display: none; }
-    .page { box-shadow: none; margin: 0; max-width: none; padding: 0; }
+    .page { box-shadow: none; margin: 0; max-width: none; width: 100%; padding: 0 2mm 0 0; }
+    table { table-layout: fixed; }
+    .head img { width: 180px; }
     [contenteditable]:focus { background: none; }
     td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
