@@ -76,6 +76,7 @@
     <tr class="sec"><td colspan="2">Spare Parts</td></tr>
     <tr><td class="k">Spare parts replaced</td><td contenteditable data-f="Did you replace any Spare Parts?"></td></tr>
     <tr><td class="k">Details</td><td contenteditable data-f="Replaced Spare Parts"></td></tr>
+    <tr><td class="k">Cost (QAR)</td><td contenteditable data-f="Cost"></td></tr>
   </table>
 
   <table class="sig" style="margin-top:26px">
@@ -90,7 +91,7 @@
 const params = new URLSearchParams(location.search);
 if (params.has('sn')) {
   const keys = { sn: 'SN', d: 'Date 2', c: 'Customer', m: 'Fridge/Freezer Model', s: 'Serial Number', t: 'Technician Name',
-                 mal: 'Malfunction', w: 'Work Carried Out', yn: 'Did you replace any Spare Parts?', sp: 'Replaced Spare Parts' };
+                 mal: 'Malfunction', w: 'Work Carried Out', yn: 'Did you replace any Spare Parts?', sp: 'Replaced Spare Parts', cost: 'Cost' };
   for (const [k, f] of Object.entries(keys)) {
     const el = document.querySelector(`[data-f="${f}"]`);
     if (el) el.textContent = (params.get(k) || '').trim();
